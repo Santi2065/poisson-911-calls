@@ -1,0 +1,23 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage[hmargin=2.5cm,vmargin=3cm]{geometry}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{placeins}
+\usepackage{setspace}
+
+\title{Inferencia y Estimación - TP 3 - Análisis Poisson y Estimación de Tasas en Llamados de Emergencia}
+\author{Santiago L. Groba Alonso \\ Materia: Inferencia y Estimación \\ Grupo XX}
+\date{Junio 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\end{document}
