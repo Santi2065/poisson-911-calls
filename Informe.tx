@@ -1,23 +1,215 @@
 \documentclass[a4paper,12pt]{article}
+% ---------------------------------------------------------
+% Paquetes básicos
 \usepackage[spanish]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
 \usepackage{graphicx}
-\usepackage{amsmath,amssymb}
-\usepackage[hmargin=2.5cm,vmargin=3cm]{geometry}
 \usepackage{caption}
-\usepackage{hyperref}
-\usepackage{placeins}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{placeins}   % \FloatBarrier
+\usepackage{geometry}
+\geometry{hmargin=2.5cm, vmargin=3cm}
 \usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{listings}   % Para incluir código fuente
+\lstset{language=Python, basicstyle=\ttfamily\small, breaklines=true}
 
-\title{Inferencia y Estimación - TP 3 - Análisis Poisson y Estimación de Tasas en Llamados de Emergencia}
-\author{Santiago L. Groba Alonso \\ Materia: Inferencia y Estimación \\ Grupo XX}
+% ---------------------------------------------------------
+% Datos de portada
+\title{Inferencia y Estimación -- TP 3\\Análisis Poisson y Estimación de Tasas en Llamados de Emergencia}
+\author{Santiago L. Groba Alonso\\Materia: Inferencia y Estimación \\ Grupo 05}
 \date{Junio 2025}
 
+% ---------------------------------------------------------
 \begin{document}
-
 \maketitle
+\onehalfspacing
 
-\section{Introduction}
+% ---------------------------------------------------------
+% Resumen / Abstract
+\begin{abstract}
+    % Breve resumen del trabajo (100--150 palabras).
+    % Describir objetivo principal, metodología y hallazgos clave.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =========================================================
+\section{Introducción}
+\label{sec:intro}
+Comprender cuán seguido ingresan los llamados al 911 es clave para dimensionar recursos de despacho. En este trabajo modelamos la llegada de incidentes como un proceso de Poisson y calculamos la tasa de arribo para mañana, tarde, noche y madrugada mediante máxima verosimilitud y un enfoque bayesiano sobre el set público de la policía de Seattle \cite{Seattle911}. Finalmente, aplicamos la prueba TOST para decidir si las diferencias entre franjas son estadísticamente irrelevantes o si conviene asignar dotaciones diferenciadas.
+
+% =========================================================
+\section{Marco teórico}
+\label{sec:theory}
+\subsection{Proceso de Poisson y distribución exponencial}
+Llamamos proceso de Poisson con tasa constante \(\lambda>0\) a la colección \(N(t)\) que cuenta cuántos eventos ocurren hasta el tiempo \(t\).  La cantidad exacta de eventos sigue la distribución  
+\[
+\mathbb{P}\!\bigl(N(t)=k\bigr)=\frac{(\lambda t)^{k}\,e^{-\lambda t}}{k!},\qquad k=0,1,\dots
+\]
+de modo que tanto la media como la varianza valen \(\lambda t\).  
+Los intervalos entre eventos, \(X_i=t_i-t_{i-1}\), son independientes y se ajustan a una exponencial  
+\[
+f_{X}(x)=\lambda e^{-\lambda x},\qquad x>0,
+\]
+lo que otorga al proceso la propiedad de “falta de memoria”: el tiempo de espera futuro no depende de cuánto se esperó hasta ahora.  
+
+Para estimar \(\lambda\) a partir de \(n\) eventos observados en un tiempo total \(T\), la máxima verosimilitud da  
+\[
+\hat{\lambda}_{\text{MLE}}=\frac{n}{T},
+\]
+insesgada y con error estándar \(\sqrt{\hat{\lambda}_{\text{MLE}}/T}\).  
+Si se parte de una creencia previa \(\lambda\sim\text{Gamma}(\alpha_0,\beta_0)\), la conjugación con los datos produce la posterior  
+\[
+\lambda\mid\text{datos}\sim\text{Gamma}\bigl(\alpha_0+n,\;\beta_0+T\bigr),
+\]
+cuya media \(\hat{\lambda}_{\text{Bayes}}=(\alpha_0+n)/(\beta_0+T)\) se usa como estimador puntual y cuyos cuantiles brindan intervalos de credibilidad para comparar tasas entre franjas horarias.
+
+\subsection{Estimadores de máxima verosimilitud y bayesianos}
+
+Dado un conjunto de $n$ intervalos entre eventos cuya suma es $T=\sum_{i=1}^{n} x_i$, la verosimilitud de la tasa de arribo es $L(\lambda)=\lambda^{n}e^{-\lambda T}$; al derivar y anular obtenemos el estimador de máxima verosimilitud \(\hat{\lambda}_{\text{MLE}}=n/T\), insesgado y con varianza \(\operatorname{Var}(\hat{\lambda}_{\text{MLE}})=\lambda/T\).  Si antes de observar los datos suponemos \(\lambda\sim\mathrm{Gamma}(\alpha_0,\beta_0)\), la conjugación con la verosimilitud genera la posterior \(\lambda\mid\text{datos}\sim\mathrm{Gamma}(\alpha_0+n,\beta_0+T)\); su media, \(\hat{\lambda}_{\text{Bayes}}=(\alpha_0+n)/(\beta_0+T)\), sirve como estimador puntual y sus percentiles entregan intervalos de credibilidad exactos.  El caso \(\alpha_0=\beta_0=0\) reproduce el estimador MLE, mientras que valores positivos permiten incorporar conocimiento previo de manera sencilla.
+
+\subsection{Entropía diferencial}
+
+Para una variable continua con densidad \(f(x)\), la entropía diferencial se define como \(h(X)=-\int f(x)\,\ln f(x)\,dx\).  Si los intervalos entre eventos siguen la exponencial \(f_{X}(x)=\lambda e^{-\lambda x}\) para \(x>0\), entonces  
+\[
+h(X)=-\int_{0}^{\infty}\lambda e^{-\lambda x}\bigl(\ln\lambda-\lambda x\bigr)\,dx
+       = -\bigl(\ln\lambda-1\bigr)
+       = 1-\ln\lambda.
+\]
+Este valor mide la “incertidumbre temporal” del proceso: cuando \(\lambda\) es grande los eventos llegan más seguido y la entropía baja, mientras que tasas pequeñas dejan mayor imprevisibilidad y entropía alta.  En la práctica se reemplaza \(\lambda\) por su estimación \(\hat{\lambda}\) —ya sea MLE o bayesiana— para obtener un estimador plug-in \( \hat{h}=1-\ln\hat{\lambda}\), útil al comparar cuánta información genera cada franja horaria de llamados.
+
+
+
+\subsection{Prueba de equivalencia TOST}
+Cuando el interés no es detectar una diferencia sino demostrar que dos tasas son
+prácticamente iguales, se recurre al enfoque Two One-Sided Tests (TOST).
+Sea $\delta>0$ el margen máximo aceptable entre las dos tasas reales
+$\lambda_1$ y $\lambda_2$; las hipótesis quedan
+
+\[
+H_0:\;|\lambda_1-\lambda_2|\ge\delta,
+\qquad
+H_1:\;|\lambda_1-\lambda_2|<\delta.
+\]
+
+Se observan $k_1$ y $k_2$ eventos en tiempos totales $T_1$ y $T_2$,
+cuyos estimadores de máxima verosimilitud son
+$\hat{\lambda}_1=k_1/T_1$ y $\hat{\lambda}_2=k_2/T_2$.
+Bajo grandes muestras la diferencia
+$\hat{\lambda}_1-\hat{\lambda}_2$ es aproximadamente normal con
+varianza
+$\operatorname{SE}^2=\hat{\lambda}_1/T_1+\hat{\lambda}_2/T_2$.
+Se construyen dos estadísticos
+
+\[
+Z_A=\frac{\hat{\lambda}_1-\hat{\lambda}_2+\delta}{\operatorname{SE}},
+\qquad
+Z_B=\frac{\hat{\lambda}_1-\hat{\lambda}_2-\delta}{\operatorname{SE}},
+\]
+
+y se calcula cada p-valor unilateral comparando con la cola
+estándar normal.  
+Al nivel $\alpha$ (típicamente $0{,}05$) se acepta equivalencia
+si ambos p-valores resultan menores que $\alpha$; de lo
+contrario no se puede descartar $H_0$.
+Este criterio garantiza una tasa de error global $\alpha$ y facilita
+decidir si las franjas horarias requieren la misma dotación de
+recursos o merecen tratamientos diferenciados.
+
+
+% =========================================================
+\section{Desarrollo}
+\label{sec:development}
+
+\subsection{Ejercicio 1: Extracción y exploración de datos}
+\label{subsec:ej1}
+% Descripción del procedimiento.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figs/poisson_counts.pdf}
+    \caption{Conteo acumulado N(t) para las primeras 100\,000 muestras en cada franja horaria.}
+    \label{fig:counts}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.48\linewidth}
+        \includegraphics[width=\linewidth]{figs/hist_ma.pdf}
+        \caption{Mañana}
+    \end{subfigure}
+    \begin{subfigure}{0.48\linewidth}
+        \includegraphics[width=\linewidth]{figs/hist_ta.pdf}
+        \caption{Tarde}
+    \end{subfigure}
+    
+    \begin{subfigure}{0.48\linewidth}
+        \includegraphics[width=\linewidth]{figs/hist_no.pdf}
+        \caption{Noche}
+    \end{subfigure}
+    \begin{subfigure}{0.48\linewidth}
+        \includegraphics[width=\linewidth]{figs/hist_md.pdf}
+        \caption{Madrugada}
+    \end{subfigure}
+    \caption{Histogramas del tiempo entre llamadas (50 bins) por franja.}
+    \label{fig:hists}
+\end{figure}
+
+\FloatBarrier
+
+\subsection{Ejercicio 2: Estimación de tasas}
+\label{subsec:ej2}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Estimaciones de $\lambda$ por franja horaria}
+    \label{tab:lambdas}
+    \begin{tabular}{lrrrr}
+        \toprule
+        Franja & $n$ & $\sum x_i$ (s) & $\hat{\lambda}_{\text{MLE}}$ (1/s) & $\hat{\lambda}_{\text{Bayes}}$ (1/s) \\
+        \midrule
+        Mañana      & -- & -- & -- & -- \\
+        Tarde       & -- & -- & -- & -- \\
+        Noche       & -- & -- & -- & -- \\
+        Madrugada   & -- & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Ejercicio 3: Entropía diferencial}
+\label{subsec:ej3}
+% Cálculo y discusión; incluir tabla o figura si corresponde.
+
+\subsection{Ejercicio 4: Test de hipótesis TOST}
+\label{subsec:ej4}
+% Presentar resultados de comparaciones de franjas y auto‑comparaciones.
+
+\FloatBarrier
+
+% =========================================================
+\section{Conclusiones}
+\label{sec:conclusions}
+% Resumir hallazgos, limitaciones y trabajo futuro.
+
+% =========================================================
+\section*{Referencias}
+\begin{thebibliography}{9}
+    \bibitem{Seattle911} Kaggle, ``Seattle Police Department 911 Incident Response". Disponible en: \url{https://www.kaggle.com/datasets/sohier/seattle-police-department-911-incident-response}.
+    \bibitem{EquivTesting} A. Ramert y E. Westphal, ``Equivalence Testing", STAT COE-Report, 2020.
+    
+\end{thebibliography}
+
+% =========================================================
+\appendix
+\section{Apéndice: Derivación de la prueba TOST}
+% Incluir detalle matemático de Z_A y Z_B.
+
 
 \end{document}
