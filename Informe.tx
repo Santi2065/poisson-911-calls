@@ -128,42 +128,60 @@ recursos o merecen tratamientos diferenciados.
 
 \subsection{Ejercicio 1: Extracción y exploración de datos}
 \label{subsec:ej1}
-% Descripción del procedimiento.
 
-\begin{figure}[htbp]
+Para este análisis, trabajamos con el dataset \texttt{911\_times.csv} que contiene marcas temporales de llamados al servicio de emergencias 911 de la policía de Seattle, clasificados en cuatro franjas horarias: mañana (6:00-11:59), tarde (12:00-17:59), noche (18:00-23:59) y madrugada (0:00-5:59). La carga de datos se realizó mediante la librería \texttt{pandas}.
+
+Para verificar que los datos siguen un proceso de Poisson, analizamos el comportamiento del conteo acumulado \(N(t)\) para cada franja horaria. Primero, convertimos las marcas temporales a formato datetime y las ordenamos cronológicamente.
+
+Luego, graficamos el proceso de conteo acumulado para las primeras 100,000 observaciones (o la totalidad si hay menos). Como se observa en la Figura \ref{fig:counts}, las curvas presentan una tendencia aproximadamente lineal, lo que respalda la hipótesis de un proceso de Poisson homogéneo. Las leves oscilaciones son esperables y representan la variabilidad natural del proceso.
+
+
+\begin{figure}
     \centering
-    \includegraphics[width=0.9\linewidth]{figs/poisson_counts.pdf}
+    \includegraphics[width=1\linewidth]{figs/poisson_counts.png}
     \caption{Conteo acumulado N(t) para las primeras 100\,000 muestras en cada franja horaria.}
     \label{fig:counts}
 \end{figure}
 
+
+El filtrado de intervalos mayores a 3,000 segundos (50 minutos) elimina valores atípicos que podrían corresponder a períodos sin actividad entre franjas, conservando más del 97\% de las observaciones originales. Esta limpieza permite una visualización más clara de la distribución típica de los tiempos entre llamadas.
+
+Las Figuras \ref{fig:hists} y \ref{fig:caja} muestran, respectivamente, los histogramas de intervalos y los diagramas de caja por franja horaria. El histograma revela la forma exponencial característica, con alta concentración de intervalos cortos y una cola que decrece progresivamente. Esta distribución es consistente con el modelo teórico para procesos de Poisson.
+
+El diagrama de caja en escala logarítmica (Figura \ref{fig:caja_log}) permite apreciar mejor las diferencias entre franjas. Se observa claramente que la madrugada presenta intervalos significativamente mayores (menor frecuencia de llamados), mientras que la tarde muestra los intervalos más cortos (mayor frecuencia). Esta variación justifica estimar tasas específicas para cada franja en lugar de asumir un único parámetro $\lambda$ para todo el día.
+
+Los gráficos muestran que la mediana crece desde aproximadamente 60 segundos en la tarde hasta más de 180 segundos en la madrugada, lo que anticipa diferencias significativas en las tasas de arribo entre estas franjas horarias.
+
 \begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figs/hist_ma.pdf}
-        \caption{Mañana}
-    \end{subfigure}
-    \begin{subfigure}{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figs/hist_ta.pdf}
-        \caption{Tarde}
-    \end{subfigure}
-    
-    \begin{subfigure}{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figs/hist_no.pdf}
-        \caption{Noche}
-    \end{subfigure}
-    \begin{subfigure}{0.48\linewidth}
-        \includegraphics[width=\linewidth]{figs/hist_md.pdf}
-        \caption{Madrugada}
-    \end{subfigure}
+    \centering  
+    \includegraphics[width=1\linewidth]{figs/hist.png}
     \caption{Histogramas del tiempo entre llamadas (50 bins) por franja.}
     \label{fig:hists}
 \end{figure}
+
+\begin{figure}[htbp]
+    \centering  
+    \includegraphics[width=1\linewidth]{figs/caja.png}
+    \caption{diagrama de caja}
+    \label{fig:caja}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering  
+    \includegraphics[width=1\linewidth]{figs/caja_log.png}
+    \caption{diagrama de caja en escala logarítmica}
+    \label{fig:caja_log}
+\end{figure}
+
 
 \FloatBarrier
 
 \subsection{Ejercicio 2: Estimación de tasas}
 \label{subsec:ej2}
+
+Para estimar la tasa de ocurrencia de llamadas al 911 se calcularon los intervalos entre llamadas sucesivas para cada período del día y, a partir de estos valores, se determino tanto el estimador de máxima verosimilitud como el estimador bayesiano de la tasa $\lambda$.
+
+Trabajando con nuestro conjunto de datos,se procesaron un total de 1,362,562 intervalos distribuidos a lo largo de las cuatro franjas horarias. Los datos revelan un patrón de comportamiento diferenciado en la frecuencia de llamadas según el período del día. La Tabla \ref{tab:lambdas} resume los resultados obtenidos, incluyendo el número de intervalos analizados, la suma total de tiempos y los valores estimados para $\lambda$ según ambos enfoques.
 
 \begin{table}[htbp]
     \centering
@@ -171,15 +189,19 @@ recursos o merecen tratamientos diferenciados.
     \label{tab:lambdas}
     \begin{tabular}{lrrrr}
         \toprule
-        Franja & $n$ & $\sum x_i$ (s) & $\hat{\lambda}_{\text{MLE}}$ (1/s) & $\hat{\lambda}_{\text{Bayes}}$ (1/s) \\
+        Franja & $n$ (intervalos) & $\sum x_i$ (s) & $\hat{\lambda}_{\text{MLE}}$ (1/s) & $\hat{\lambda}_{\text{Bayes}}$ (1/s) \\
         \midrule
-        Mañana      & -- & -- & -- & -- \\
-        Tarde       & -- & -- & -- & -- \\
-        Noche       & -- & -- & -- & -- \\
-        Madrugada   & -- & -- & -- & -- \\
+        Mañana      & 252,683 & 252,563,041 & 0.001000475 & 0.001000479 \\
+        Tarde       & 420,254 & 258,687,684 & 0.001624561 & 0.001624565 \\
+        Noche       & 459,350 & 258,519,941 & 0.001776846 & 0.001776849 \\
+        Madrugada   & 289,978 & 257,920,893 & 0.001124294 & 0.001124298 \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+Los resultados muestran claramente una variación en la tasa de llamadas según la franja horaria. La noche presenta la mayor frecuencia de incidentes, con aproximadamente 1.78 llamadas por cada 1,000 segundos (equivalente a unos 6.4 llamados por hora). Le sigue de cerca la franja de la tarde, con 1.62 llamadas cada 1,000 segundos. En contraste, la mañana muestra la menor actividad, con solo 1 llamada cada 1,000 segundos, casi la mitad de la tasa nocturna. La madrugada, por su parte, mantiene una frecuencia intermedia-baja de 1.12 llamadas por 1,000 segundos. Esta heterogeneidad en las tasas confirma nuestra hipótesis inicial sobre la influencia del ritmo circadiano urbano en los patrones de emergencias.
+
+Respecto a los métodos de estimación, observamos una coincidencia prácticamente exacta entre los valores obtenidos por máxima verosimilitud y el enfoque bayesiano. Las diferencias entre ambos estimadores son del orden de $10^{-9}$, lo cual resulta esperado dado el gran tamaño muestral disponible. Con tantas observaciones, la información contenida en los datos domina completamente sobre la distribución prior elegida (Gamma(1,1)), haciendo que ambos enfoques converjan al mismo resultado. Esta robustez en la estimación refuerza la confiabilidad de los valores obtenidos, que servirán como base para los análisis de entropía y equivalencia en las siguientes secciones.
 
 \FloatBarrier
 
