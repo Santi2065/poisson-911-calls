@@ -110,6 +110,6 @@ python docs/figures/make_figures.py  # figures and tables of this README
   title        = {Poisson Modelling of Seattle 911 Call Arrivals by Time of Day},
   year         = {2025},
   howpublished = {Universidad de San Andr{\'e}s, Inference and Estimation},
-  url          = {https://github.com/Santi2065/tp3-inferencia-1Q2025}
+  url          = {https://github.com/Santi2065/poisson-911-calls}
 }
 ```
