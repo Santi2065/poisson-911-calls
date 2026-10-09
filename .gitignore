@@ -1,0 +1,4 @@
+# Local virtual environment (was committed by mistake; untracked)
+.venv/
+__pycache__/
+.ipynb_checkpoints/
